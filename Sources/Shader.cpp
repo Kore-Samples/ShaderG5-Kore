@@ -1,9 +1,10 @@
 #include "pch.h"
 
 #include <Kore/IO/FileReader.h>
-#include <Kore/Graphics4/Graphics.h>
-#include <Kore/Graphics4/PipelineState.h>
-#include <Kore/Graphics4/Shader.h>
+#include <Kore/Graphics5/CommandList.h>
+#include <Kore/Graphics5/Graphics.h>
+#include <Kore/Graphics5/PipelineState.h>
+#include <Kore/Graphics5/Shader.h>
 #include <Kore/System.h>
 #include <limits>
 #include <stdlib.h>
@@ -12,24 +13,37 @@
 using namespace Kore;
 
 namespace {
-	Graphics4::Shader* vertexShader;
-	Graphics4::Shader* fragmentShader;
-	Graphics4::PipelineState* pipeline;
-	Graphics4::VertexBuffer* vertices;
-	Graphics4::IndexBuffer* indices;
+	const int bufferCount = 2;
+	int currentBuffer = 0;
+	Graphics5::RenderTarget* framebuffers[bufferCount];
+	Graphics5::Shader* vertexShader;
+	Graphics5::Shader* fragmentShader;
+	Graphics5::PipelineState* pipeline;
+	Graphics5::VertexBuffer* vertices;
+	Graphics5::IndexBuffer* indices;
+	Graphics5::CommandList* commandList;
 
 	void update() {
-		printf("update\n");
-		Graphics4::begin();
-		Graphics4::clear(Graphics4::ClearColorFlag);
+		//printf("update\n");
+		currentBuffer = (currentBuffer + 1) % bufferCount;
 
-		Graphics4::setPipeline(pipeline);
-		Graphics4::setVertexBuffer(*vertices);
-		Graphics4::setIndexBuffer(*indices);
-		Graphics4::drawIndexedVertices();
+		Graphics5::begin(framebuffers[currentBuffer]);
 
-		Graphics4::end();
-		Graphics4::swapBuffers();
+		commandList->begin();
+		commandList->framebufferToRenderTargetBarrier(framebuffers[currentBuffer]);
+		commandList->setRenderTargets(&framebuffers[currentBuffer], 1);
+
+		commandList->clear(framebuffers[currentBuffer], Graphics5::ClearColorFlag);
+		commandList->setPipeline(pipeline);
+		commandList->setVertexBuffers(&vertices, 1);
+		commandList->setIndexBuffer(*indices);
+		commandList->drawIndexedVertices();
+
+		commandList->renderTargetToFramebufferBarrier(framebuffers[currentBuffer]);
+		commandList->end();
+		
+		Graphics5::end();
+		Graphics5::swapBuffers(0);
 	}
 }
 
@@ -53,25 +67,30 @@ int kore(int argc, char** argv) {
 
 	FileReader vs("shader.vert");
 	FileReader fs("shader.frag");
-	vertexShader = new Graphics4::Shader(vs.readAll(), vs.size(), Graphics4::VertexShader);
-	fragmentShader = new Graphics4::Shader(fs.readAll(), fs.size(), Graphics4::FragmentShader);
+	vertexShader = new Graphics5::Shader(vs.readAll(), vs.size(), Graphics5::VertexShader);
+	fragmentShader = new Graphics5::Shader(fs.readAll(), fs.size(), Graphics5::FragmentShader);
 	Graphics4::VertexStructure structure;
 	structure.add("pos", Graphics4::Float3VertexData);
-	pipeline = new Graphics4::PipelineState();
+	pipeline = new Graphics5::PipelineState();
 	pipeline->vertexShader = vertexShader;
 	pipeline->fragmentShader = fragmentShader;
 	pipeline->inputLayout[0] = &structure;
 	pipeline->inputLayout[1] = nullptr;
 	pipeline->compile();
 
-	vertices = new Graphics4::VertexBuffer(3, structure);
+	commandList = new Graphics5::CommandList;
+	for (int i = 0; i < bufferCount; ++i) {
+		framebuffers[i] = new Graphics5::RenderTarget(System::windowWidth(0), System::windowHeight(0), 16);
+	}
+
+	vertices = new Graphics5::VertexBuffer(3, structure, false);
 	float* v = vertices->lock();
 	v[0] = -1; v[1] = -1; v[2] = 0.5;
 	v[3] = 1;  v[4] = -1; v[5] = 0.5;
 	v[6] = -1; v[7] = 1;  v[8] = 0.5;
 	vertices->unlock();
 
-	indices = new Graphics4::IndexBuffer(3);
+	indices = new Graphics5::IndexBuffer(3, true);
 	int* i = indices->lock();
 	i[0] = 0; i[1] = 1; i[2] = 2;
 	indices->unlock();
