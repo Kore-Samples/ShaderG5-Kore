@@ -13,8 +13,8 @@
 using namespace Kore;
 
 namespace {
-	const int bufferCount = 2;
-	int currentBuffer = 0;
+	const int bufferCount = 3;
+	int currentBuffer = -1;
 	Graphics5::RenderTarget* framebuffers[bufferCount];
 	Graphics5::Shader* vertexShader;
 	Graphics5::Shader* fragmentShader;
@@ -24,7 +24,6 @@ namespace {
 	Graphics5::CommandList* commandList;
 
 	void update() {
-		//printf("update\n");
 		currentBuffer = (currentBuffer + 1) % bufferCount;
 
 		Graphics5::begin(framebuffers[currentBuffer]);
@@ -35,7 +34,10 @@ namespace {
 
 		commandList->clear(framebuffers[currentBuffer], Graphics5::ClearColorFlag);
 		commandList->setPipeline(pipeline);
-		commandList->setVertexBuffers(&vertices, 1);
+		commandList->setPipelineLayout();
+
+		int offsets[1] = { 0 };
+		commandList->setVertexBuffers(&vertices, offsets, 1);
 		commandList->setIndexBuffer(*indices);
 		commandList->drawIndexedVertices();
 
@@ -43,26 +45,17 @@ namespace {
 		commandList->end();
 		
 		Graphics5::end();
-		Graphics5::swapBuffers(0);
+		Graphics5::swapBuffers();
 	}
 }
 
 int kore(int argc, char** argv) {
-	Kore::System::setName("Shader");
-	Kore::System::setup();
 	Kore::WindowOptions options;
 	options.title = "Shader";
 	options.width = 1024;
 	options.height = 768;
-	options.x = 100;
-	options.y = 100;
-	options.targetDisplay = -1;
 	options.mode = WindowMode::WindowModeWindow;
-	options.rendererOptions.depthBufferBits = 16;
-	options.rendererOptions.stencilBufferBits = 8;
-	options.rendererOptions.textureFormat = 0;
-	options.rendererOptions.antialiasing = 0;
-	Kore::System::initWindow(options);
+	Kore::System::init(options.title, options.width, options.height, &options);
 	Kore::System::setCallback(update);
 
 	FileReader vs("shader.vert");
@@ -80,7 +73,8 @@ int kore(int argc, char** argv) {
 
 	commandList = new Graphics5::CommandList;
 	for (int i = 0; i < bufferCount; ++i) {
-		framebuffers[i] = new Graphics5::RenderTarget(System::windowWidth(0), System::windowHeight(0), 16);
+		framebuffers[i] = new Graphics5::RenderTarget(System::windowWidth(0), System::windowHeight(0), 16, false, Graphics5::Target32Bit,
+		                                              -1, -i - 1 /* hack in an index for backbuffer render targets */);
 	}
 
 	vertices = new Graphics5::VertexBuffer(3, structure, false);
@@ -94,6 +88,7 @@ int kore(int argc, char** argv) {
 	int* i = indices->lock();
 	i[0] = 0; i[1] = 1; i[2] = 2;
 	indices->unlock();
+	commandList->upload(indices);
 
 	Kore::System::start();
 
