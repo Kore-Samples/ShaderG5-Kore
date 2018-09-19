@@ -13,7 +13,7 @@
 using namespace Kore;
 
 namespace {
-	const int bufferCount = 3;
+	const int bufferCount = 2;
 	int currentBuffer = -1;
 	Graphics5::RenderTarget* framebuffers[bufferCount];
 	Graphics5::Shader* vertexShader;
