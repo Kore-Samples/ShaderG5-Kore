@@ -1,5 +1,3 @@
-#include "pch.h"
-
 #include <Kore/IO/FileReader.h>
 #include <Kore/Graphics5/CommandList.h>
 #include <Kore/Graphics5/Graphics.h>
@@ -43,13 +41,13 @@ namespace {
 
 		commandList->renderTargetToFramebufferBarrier(framebuffers[currentBuffer]);
 		commandList->end();
-		
+
 		Graphics5::end();
 		Graphics5::swapBuffers();
 	}
 }
 
-int kore(int argc, char** argv) {
+int kickstart(int argc, char** argv) {
 	Kore::WindowOptions options;
 	options.title = "Shader";
 	options.width = 1024;
@@ -74,7 +72,7 @@ int kore(int argc, char** argv) {
 	commandList = new Graphics5::CommandList;
 	for (int i = 0; i < bufferCount; ++i) {
 		framebuffers[i] = new Graphics5::RenderTarget(System::windowWidth(0), System::windowHeight(0), 16, false, Graphics5::Target32Bit,
-		                                              -1, -i - 1 /* hack in an index for backbuffer render targets */);
+			-1, -i - 1 /* hack in an index for backbuffer render targets */);
 	}
 
 	vertices = new Graphics5::VertexBuffer(3, structure, false);
