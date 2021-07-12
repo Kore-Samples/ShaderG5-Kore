@@ -1,14 +1,9 @@
-#include "pch.h"
-
 #include <Kore/IO/FileReader.h>
 #include <Kore/Graphics5/CommandList.h>
 #include <Kore/Graphics5/Graphics.h>
 #include <Kore/Graphics5/PipelineState.h>
 #include <Kore/Graphics5/Shader.h>
 #include <Kore/System.h>
-#include <limits>
-#include <stdlib.h>
-#include <stdio.h>
 
 using namespace Kore;
 
@@ -49,13 +44,8 @@ namespace {
 	}
 }
 
-int kore(int argc, char** argv) {
-	Kore::WindowOptions options;
-	options.title = "Shader";
-	options.width = 1024;
-	options.height = 768;
-	options.mode = WindowMode::WindowModeWindow;
-	Kore::System::init(options.title, options.width, options.height, &options);
+int kickstart(int argc, char** argv) {
+    Kore::System::init("Shader", 1024, 768);
 	Kore::System::setCallback(update);
 
 	FileReader vs("shader.vert");
